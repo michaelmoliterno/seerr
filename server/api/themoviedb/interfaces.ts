@@ -56,6 +56,13 @@ interface TmdbPaginatedResponse {
   total_pages: number;
 }
 
+export interface TmdbListResponse extends TmdbPaginatedResponse {
+  id: number;
+  name: string;
+  description: string;
+  items: (TmdbMovieResult | TmdbTvResult)[];
+}
+
 export interface TmdbSearchMultiResponse extends TmdbPaginatedResponse {
   results: (
     | TmdbMovieResult

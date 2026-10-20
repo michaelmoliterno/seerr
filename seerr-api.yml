@@ -6336,6 +6336,64 @@ paths:
                         - $ref: '#/components/schemas/MovieResult'
                         - $ref: '#/components/schemas/TvResult'
                         - $ref: '#/components/schemas/PersonResult'
+  /discover/list/{listId}:
+    get:
+      summary: Get movies and series from a TMDB list
+      description: Returns the items of a public TMDB list in a JSON object.
+      tags:
+        - search
+      parameters:
+        - in: path
+          name: listId
+          required: true
+          schema:
+            type: number
+          example: 28
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+        - in: query
+          name: language
+          schema:
+            type: string
+            example: en
+      responses:
+        '200':
+          description: List items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: number
+                    example: 1
+                  totalPages:
+                    type: number
+                    example: 5
+                  totalResults:
+                    type: number
+                    example: 98
+                  list:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                        example: 28
+                      name:
+                        type: string
+                        example: 'Best Picture Winners - The Academy Awards'
+                  results:
+                    type: array
+                    items:
+                      anyOf:
+                        - $ref: '#/components/schemas/MovieResult'
+                        - $ref: '#/components/schemas/TvResult'
+        '404':
+          description: The list does not exist or is private
   /discover/keyword/{keywordId}/movies:
     get:
       summary: Get movies from keyword
