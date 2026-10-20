@@ -374,6 +374,8 @@ type WatchProviderSelectorProps = {
   region?: string;
   activeProviders?: number[];
   onChange: (region: string, value: number[]) => void;
+  // Use `region` as given instead of showing a region picker
+  fixedRegion?: boolean;
 };
 
 export const WatchProviderSelector = ({
@@ -381,6 +383,7 @@ export const WatchProviderSelector = ({
   onChange,
   region,
   activeProviders,
+  fixedRegion,
 }: WatchProviderSelectorProps) => {
   const intl = useIntl();
   const { currentSettings } = useSettings();
@@ -395,6 +398,12 @@ export const WatchProviderSelector = ({
   const [activeProvider, setActiveProvider] = useState<number[]>(
     activeProviders ?? []
   );
+  useEffect(() => {
+    if (fixedRegion && region) {
+      setWatchRegion(region);
+    }
+  }, [fixedRegion, region]);
+
   const { data, isLoading } = useSWR<WatchProviderDetails[]>(
     `/api/v1/watchproviders/${
       type === 'movie' ? 'movies' : 'tv'
@@ -428,18 +437,20 @@ export const WatchProviderSelector = ({
 
   return (
     <>
-      <RegionSelector
-        value={watchRegion}
-        name="watchRegion"
-        onChange={(_name, value) => {
-          if (value !== watchRegion) {
-            setActiveProvider([]);
-          }
-          setWatchRegion(value);
-        }}
-        disableAll
-        watchProviders
-      />
+      {!fixedRegion && (
+        <RegionSelector
+          value={watchRegion}
+          name="watchRegion"
+          onChange={(_name, value) => {
+            if (value !== watchRegion) {
+              setActiveProvider([]);
+            }
+            setWatchRegion(value);
+          }}
+          disableAll
+          watchProviders
+        />
+      )}
       {isLoading ? (
         <SmallLoadingSpinner />
       ) : (

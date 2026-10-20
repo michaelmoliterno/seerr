@@ -132,3 +132,68 @@ describe('POST /user/:id/settings/linked-accounts/jellyfin/quickconnect', () => 
     assert.strictEqual(user.jellyfinUserId, null);
   });
 });
+
+describe('POST /user/:id/settings/main streaming services', () => {
+  async function postMain(body: Record<string, unknown>) {
+    const { agent, userId } = await loginAs('demo@seerr.dev', 'test1234');
+    const current = await agent.get(`/user/${userId}/settings/main`);
+    const res = await agent
+      .post(`/user/${userId}/settings/main`)
+      .send({ ...current.body, ...body });
+    return { agent, userId, res };
+  }
+
+  it('saves de-duplicated services and the toggle', async () => {
+    const { agent, userId, res } = await postMain({
+      streamingServices: [8, 1899, 8, 15],
+      hideStreamingServices: true,
+    });
+
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body.streamingServices, [8, 1899, 15]);
+    assert.strictEqual(res.body.hideStreamingServices, true);
+
+    const saved = await agent.get(`/user/${userId}/settings/main`);
+    assert.deepStrictEqual(saved.body.streamingServices, [8, 1899, 15]);
+    assert.strictEqual(saved.body.hideStreamingServices, true);
+  });
+
+  it('keeps saved services when a client omits the fields', async () => {
+    const { agent, userId } = await postMain({
+      streamingServices: [8],
+      hideStreamingServices: true,
+    });
+    const current = await agent.get(`/user/${userId}/settings/main`);
+    const rest = { ...current.body };
+    delete rest.streamingServices;
+    delete rest.hideStreamingServices;
+
+    const res = await agent.post(`/user/${userId}/settings/main`).send(rest);
+
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body.streamingServices, [8]);
+    assert.strictEqual(res.body.hideStreamingServices, true);
+  });
+
+  for (const [label, streamingServices] of [
+    ['non-integer IDs', [8.5]],
+    ['zero or negative IDs', [0, -3]],
+    ['strings', ['8']],
+    ['a non-array', 8],
+    ['too many IDs', Array.from({ length: 51 }, (_, i) => i + 1)],
+  ] as const) {
+    it(`rejects ${label}`, async () => {
+      const { agent, userId, res } = await postMain({ streamingServices });
+
+      assert.strictEqual(res.status, 400);
+      const saved = await agent.get(`/user/${userId}/settings/main`);
+      assert.deepStrictEqual(saved.body.streamingServices, []);
+    });
+  }
+
+  it('rejects a non-boolean toggle', async () => {
+    const { res } = await postMain({ hideStreamingServices: 'yes' });
+
+    assert.strictEqual(res.status, 400);
+  });
+});

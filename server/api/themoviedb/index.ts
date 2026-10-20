@@ -178,10 +178,19 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
   private locale: string;
   private discoverRegion?: string;
   private originalLanguage?: string;
+  private excludeWatchProviders?: number[];
+  private excludeWatchRegion?: string;
   constructor({
     discoverRegion,
     originalLanguage,
-  }: { discoverRegion?: string; originalLanguage?: string } = {}) {
+    excludeWatchProviders,
+    excludeWatchRegion,
+  }: {
+    discoverRegion?: string;
+    originalLanguage?: string;
+    excludeWatchProviders?: number[];
+    excludeWatchRegion?: string;
+  } = {}) {
     super(
       'https://api.themoviedb.org/3',
       {
@@ -198,6 +207,37 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
     this.locale = getSettings().main?.locale || 'en';
     this.discoverRegion = discoverRegion;
     this.originalLanguage = originalLanguage;
+    this.excludeWatchProviders = excludeWatchProviders;
+    this.excludeWatchRegion = excludeWatchRegion;
+  }
+
+  /**
+   * Discover params that hide titles on the user's own streaming services.
+   * Skipped when the request asks for specific providers, or when there is
+   * no single region to check availability against.
+   *
+   * TMDB behaviour (checked October 2026):
+   * - `without_watch_providers` is ignored unless `watch_region` is set.
+   * - Pipe and comma both mean "on none of these".
+   * - It matches every monetization type, so a provider that also rents or
+   *   sells titles hides those too. Subscription services have their own
+   *   provider IDs (e.g. Amazon Prime Video 9 vs Amazon Video 10), so in
+   *   practice this only bites if a storefront is picked as a "service".
+   */
+  private getWatchProviderExclusion(watchProviders?: string) {
+    if (
+      watchProviders ||
+      !this.excludeWatchProviders?.length ||
+      !this.excludeWatchRegion ||
+      this.excludeWatchRegion === 'all'
+    ) {
+      return {};
+    }
+
+    return {
+      without_watch_providers: this.excludeWatchProviders.join('|'),
+      watch_region: this.excludeWatchRegion,
+    };
   }
 
   public searchMulti = async ({
@@ -754,6 +794,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
           'certification.gte': certificationGte,
           'certification.lte': certificationLte,
           certification_country: certificationCountry,
+          ...this.getWatchProviderExclusion(watchProviders),
         },
       });
 
@@ -842,6 +883,7 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
           'certification.gte': certificationGte,
           'certification.lte': certificationLte,
           certification_country: certificationCountry,
+          ...this.getWatchProviderExclusion(watchProviders),
         },
       });
 

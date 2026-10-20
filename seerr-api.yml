@@ -164,6 +164,17 @@ components:
           type: string
           nullable: true
           example: 'en'
+        streamingServices:
+          type: array
+          description: 'TMDB watch provider IDs of the streaming services the user subscribes to (at most 50, duplicates removed)'
+          items:
+            type: integer
+            minimum: 1
+          example: [8, 1899, 15]
+        hideStreamingServices:
+          type: boolean
+          description: 'Hide titles available on the streaming services above from Discover rows (Trending and search are not filtered)'
+          example: true
         movieQuotaLimit:
           type: number
           nullable: true

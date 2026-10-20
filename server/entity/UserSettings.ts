@@ -85,6 +85,13 @@ export class UserSettings {
   @Column({ nullable: true })
   public watchlistSyncTv?: boolean;
 
+  // TMDB watch provider IDs of the services this user subscribes to
+  @Column({ type: 'text', nullable: true, transformer: jsonArrayTransformer })
+  public streamingServices?: number[];
+
+  @Column({ default: false })
+  public hideStreamingServices?: boolean;
+
   @Column({
     type: 'text',
     nullable: true,

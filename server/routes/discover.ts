@@ -45,9 +45,19 @@ export const createTmdbWithRegionLanguage = (user?: User): TheMovieDb => {
         ? user?.settings?.originalLanguage
         : settings.main.originalLanguage;
 
+  const excludeWatchRegion =
+    user?.settings?.streamingRegion ||
+    settings.main.streamingRegion ||
+    settings.main.discoverRegion ||
+    'US';
+
   return new TheMovieDb({
     discoverRegion,
     originalLanguage,
+    excludeWatchProviders: user?.settings?.hideStreamingServices
+      ? user.settings.streamingServices
+      : undefined,
+    excludeWatchRegion,
   });
 };
 

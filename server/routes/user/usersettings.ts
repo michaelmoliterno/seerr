@@ -24,7 +24,16 @@ import {
 import { Router } from 'express';
 import net from 'net';
 import { Not } from 'typeorm';
+import { z } from 'zod';
 import { canMakePermissionsChange } from '.';
+
+// Far more than anyone subscribes to, but keeps the TMDB query short
+const MAX_STREAMING_SERVICES = 50;
+
+const StreamingServicesSchema = z
+  .array(z.number().int().positive())
+  .transform((ids) => [...new Set(ids)])
+  .pipe(z.array(z.number()).max(MAX_STREAMING_SERVICES));
 
 const userSettingsRoutes = Router({ mergeParams: true });
 
@@ -63,6 +72,8 @@ userSettingsRoutes.get<{ id: string }, UserSettingsGeneralResponse>(
         globalTvQuotaLimit: defaultQuotas.tv.quotaLimit,
         watchlistSyncMovies: user.settings?.watchlistSyncMovies,
         watchlistSyncTv: user.settings?.watchlistSyncTv,
+        streamingServices: user.settings?.streamingServices ?? [],
+        hideStreamingServices: user.settings?.hideStreamingServices ?? false,
       });
     } catch (e) {
       next({ status: 500, message: e.message });
@@ -119,6 +130,26 @@ userSettingsRoutes.post<
       user.tvQuotaLimit = req.body.tvQuotaLimit;
     }
 
+    const streamingServices =
+      req.body.streamingServices === undefined
+        ? undefined
+        : StreamingServicesSchema.safeParse(req.body.streamingServices);
+    if (streamingServices && !streamingServices.success) {
+      return next({
+        status: 400,
+        message: `streamingServices must be a list of at most ${MAX_STREAMING_SERVICES} TMDB provider IDs.`,
+      });
+    }
+    if (
+      req.body.hideStreamingServices !== undefined &&
+      typeof req.body.hideStreamingServices !== 'boolean'
+    ) {
+      return next({
+        status: 400,
+        message: 'hideStreamingServices must be a boolean.',
+      });
+    }
+
     if (!user.settings) {
       user.settings = new UserSettings({
         user: req.user,
@@ -128,6 +159,8 @@ userSettingsRoutes.post<
         originalLanguage: req.body.originalLanguage,
         watchlistSyncMovies: req.body.watchlistSyncMovies,
         watchlistSyncTv: req.body.watchlistSyncTv,
+        streamingServices: streamingServices?.data,
+        hideStreamingServices: req.body.hideStreamingServices,
       });
     } else {
       user.settings.locale = req.body.locale;
@@ -136,6 +169,13 @@ userSettingsRoutes.post<
       user.settings.originalLanguage = req.body.originalLanguage;
       user.settings.watchlistSyncMovies = req.body.watchlistSyncMovies;
       user.settings.watchlistSyncTv = req.body.watchlistSyncTv;
+      // Older clients don't send these, so only change them when present
+      if (streamingServices) {
+        user.settings.streamingServices = streamingServices.data;
+      }
+      if (req.body.hideStreamingServices !== undefined) {
+        user.settings.hideStreamingServices = req.body.hideStreamingServices;
+      }
     }
 
     const savedUser = await userRepository.save(user);
@@ -148,6 +188,8 @@ userSettingsRoutes.post<
       originalLanguage: savedUser.settings?.originalLanguage,
       watchlistSyncMovies: savedUser.settings?.watchlistSyncMovies,
       watchlistSyncTv: savedUser.settings?.watchlistSyncTv,
+      streamingServices: savedUser.settings?.streamingServices ?? [],
+      hideStreamingServices: savedUser.settings?.hideStreamingServices ?? false,
       email: savedUser.email,
     });
   } catch (e) {

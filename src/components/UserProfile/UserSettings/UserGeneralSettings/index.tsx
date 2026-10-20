@@ -5,6 +5,7 @@ import PageTitle from '@app/components/Common/PageTitle';
 import LanguageSelector from '@app/components/LanguageSelector';
 import QuotaSelector from '@app/components/QuotaSelector';
 import RegionSelector from '@app/components/RegionSelector';
+import { WatchProviderSelector } from '@app/components/Selector';
 import { availableLanguages } from '@app/context/LanguageContext';
 import useLocale from '@app/hooks/useLocale';
 import useSettings from '@app/hooks/useSettings';
@@ -56,6 +57,11 @@ const messages = defineMessages(
     originallanguageTip: 'Filter content by original language',
     streamingRegion: 'Streaming Region',
     streamingRegionTip: 'Show streaming sites by regional availability',
+    streamingServices: 'My Streaming Services',
+    streamingServicesTip: 'The services you subscribe to',
+    hideStreamingServices: 'Hide Titles on My Services',
+    hideStreamingServicesTip:
+      'Hide titles available on my services in Discover. Applies to Discover rows; Trending and search are not filtered.',
     movierequestlimit: 'Movie Request Limit',
     seriesrequestlimit: 'Series Request Limit',
     enableOverride: 'Override Global Limit',
@@ -161,6 +167,8 @@ const UserGeneralSettings = () => {
           tvQuotaDays: data?.tvQuotaDays,
           watchlistSyncMovies: data?.watchlistSyncMovies,
           watchlistSyncTv: data?.watchlistSyncTv,
+          streamingServices: data?.streamingServices ?? [],
+          hideStreamingServices: data?.hideStreamingServices ?? false,
         }}
         validationSchema={UserGeneralSettingsSchema}
         enableReinitialize
@@ -182,6 +190,10 @@ const UserGeneralSettings = () => {
               tvQuotaDays: tvQuotaEnabled ? values.tvQuotaDays : null,
               watchlistSyncMovies: values.watchlistSyncMovies,
               watchlistSyncTv: values.watchlistSyncTv,
+              streamingServices: values.streamingServices,
+              hideStreamingServices:
+                values.hideStreamingServices &&
+                values.streamingServices.length > 0,
             });
 
             if (currentUser?.id === user?.id && setLocale) {
@@ -416,6 +428,63 @@ const UserGeneralSettings = () => {
                       disableAll
                     />
                   </div>
+                </div>
+              </div>
+              <div className="form-row">
+                <label htmlFor="streamingServices" className="text-label">
+                  <span>{intl.formatMessage(messages.streamingServices)}</span>
+                  <span className="label-tip">
+                    {intl.formatMessage(messages.streamingServicesTip)}
+                  </span>
+                </label>
+                <div className="form-input-area">
+                  <div className="form-input-field flex-col">
+                    <WatchProviderSelector
+                      type="movie"
+                      region={
+                        values.streamingRegion ||
+                        currentSettings.streamingRegion ||
+                        currentSettings.discoverRegion ||
+                        'US'
+                      }
+                      fixedRegion
+                      activeProviders={values.streamingServices}
+                      onChange={(_region, providers) =>
+                        setFieldValue('streamingServices', providers)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="form-row">
+                <label
+                  htmlFor="hideStreamingServices"
+                  className="checkbox-label"
+                >
+                  <span>
+                    {intl.formatMessage(messages.hideStreamingServices)}
+                  </span>
+                  <span className="label-tip">
+                    {intl.formatMessage(messages.hideStreamingServicesTip)}
+                  </span>
+                </label>
+                <div className="form-input-area">
+                  <Field
+                    type="checkbox"
+                    id="hideStreamingServices"
+                    name="hideStreamingServices"
+                    disabled={values.streamingServices.length === 0}
+                    checked={
+                      values.hideStreamingServices &&
+                      values.streamingServices.length > 0
+                    }
+                    onChange={() => {
+                      setFieldValue(
+                        'hideStreamingServices',
+                        !values.hideStreamingServices
+                      );
+                    }}
+                  />
                 </div>
               </div>
               {currentHasPermission(Permission.MANAGE_USERS) &&
