@@ -8,6 +8,7 @@ import {
   prepareFilterValues,
 } from '@app/components/Discover/constants';
 import FilterSlideover from '@app/components/Discover/FilterSlideover';
+import SaveFilterSlider from '@app/components/Discover/SaveFilterSlider';
 import useDiscover from '@app/hooks/useDiscover';
 import { useUpdateQueryParams } from '@app/hooks/useUpdateQueryParams';
 import ErrorPage from '@app/pages/_error';
@@ -128,6 +129,7 @@ const DiscoverTv = () => {
               </span>
             </Button>
           </div>
+          <SaveFilterSlider type="tv" filters={preparedFilters} />
         </div>
       </div>
       <ListView
