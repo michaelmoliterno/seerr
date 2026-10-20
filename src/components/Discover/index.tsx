@@ -408,6 +408,28 @@ const Discover = () => {
               />
             );
             break;
+          case DiscoverSliderType.TMDB_MOVIE_FILTER:
+            sliderComponent = (
+              <MediaSlider
+                sliderKey={`custom-slider-${slider.id}`}
+                title={slider.title ?? ''}
+                url="/api/v1/discover/movies"
+                extraParams={slider.data}
+                linkUrl={`/discover/movies?${slider.data}`}
+              />
+            );
+            break;
+          case DiscoverSliderType.TMDB_TV_FILTER:
+            sliderComponent = (
+              <MediaSlider
+                sliderKey={`custom-slider-${slider.id}`}
+                title={slider.title ?? ''}
+                url="/api/v1/discover/tv"
+                extraParams={slider.data}
+                linkUrl={`/discover/tv?${slider.data}`}
+              />
+            );
+            break;
         }
 
         if (isEditing) {

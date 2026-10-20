@@ -1,11 +1,18 @@
 import Button from '@app/components/Common/Button';
 import Tooltip from '@app/components/Common/Tooltip';
-import { sliderTitles } from '@app/components/Discover/constants';
+import {
+  prepareFilterValues,
+  sliderTitles,
+} from '@app/components/Discover/constants';
 import MediaSlider from '@app/components/MediaSlider';
 import { WatchProviderSelector } from '@app/components/Selector';
 import { encodeURIExtraParams } from '@app/hooks/useDiscover';
 import useToasts from '@app/hooks/useToasts';
 import defineMessages from '@app/utils/defineMessages';
+import {
+  filtersToQuery,
+  paramsFromDiscoverUrl,
+} from '@app/utils/discoverFilterQuery';
 import { parseTmdbListId } from '@app/utils/parseTmdbListId';
 import type {
   TmdbCompanySearchResponse,
@@ -33,6 +40,7 @@ const messages = defineMessages('components.Discover.CreateSlider', {
   providetmdbstudio: 'Provide TMDB Studio ID',
   providetmdbnetwork: 'Provide TMDB Network ID',
   providetmdblist: 'Paste a TMDB list URL or ID',
+  providediscoverurl: 'Paste a Discover page URL with filters applied',
   addsuccess: 'Created new slider and saved discover customization settings.',
   addfail: 'Failed to create new slider.',
   editsuccess: 'Edited slider and saved discover customization settings.',
@@ -304,6 +312,20 @@ const CreateSlider = ({ onCreate, slider }: CreateSliderProps) => {
       titlePlaceholderText: intl.formatMessage(messages.slidernameplaceholder),
       dataPlaceholderText: intl.formatMessage(messages.providetmdblist),
     },
+    {
+      type: DiscoverSliderType.TMDB_MOVIE_FILTER,
+      title: intl.formatMessage(sliderTitles.tmdbmoviefilter),
+      dataUrl: '/api/v1/discover/movies',
+      titlePlaceholderText: intl.formatMessage(messages.slidernameplaceholder),
+      dataPlaceholderText: intl.formatMessage(messages.providediscoverurl),
+    },
+    {
+      type: DiscoverSliderType.TMDB_TV_FILTER,
+      title: intl.formatMessage(sliderTitles.tmdbtvfilter),
+      dataUrl: '/api/v1/discover/tv',
+      titlePlaceholderText: intl.formatMessage(messages.slidernameplaceholder),
+      dataPlaceholderText: intl.formatMessage(messages.providediscoverurl),
+    },
   ];
 
   return (
@@ -492,6 +514,31 @@ const CreateSlider = ({ onCreate, slider }: CreateSliderProps) => {
               />
             );
             break;
+          case DiscoverSliderType.TMDB_MOVIE_FILTER:
+          case DiscoverSliderType.TMDB_TV_FILTER:
+            dataInput = (
+              <input
+                type="text"
+                id="data"
+                defaultValue={slider?.data}
+                placeholder={activeOption?.dataPlaceholderText}
+                onChange={(e) => {
+                  try {
+                    setFieldValue(
+                      'data',
+                      filtersToQuery(
+                        prepareFilterValues(
+                          paramsFromDiscoverUrl(e.target.value)
+                        )
+                      )
+                    );
+                  } catch {
+                    setFieldValue('data', '');
+                  }
+                }}
+              />
+            );
+            break;
           default:
             dataInput = (
               <Field
@@ -565,22 +612,26 @@ const CreateSlider = ({ onCreate, slider }: CreateSliderProps) => {
                   )}
                   extraParams={
                     activeOption.type ===
-                      DiscoverSliderType.TMDB_MOVIE_STREAMING_SERVICES ||
-                    activeOption.type ===
-                      DiscoverSliderType.TMDB_TV_STREAMING_SERVICES
-                      ? activeOption.params
-                          ?.replace(
-                            '$regionValue',
-                            encodeURIExtraParams(values?.data.split(',')[0])
+                      DiscoverSliderType.TMDB_MOVIE_FILTER ||
+                    activeOption.type === DiscoverSliderType.TMDB_TV_FILTER
+                      ? values.data
+                      : activeOption.type ===
+                            DiscoverSliderType.TMDB_MOVIE_STREAMING_SERVICES ||
+                          activeOption.type ===
+                            DiscoverSliderType.TMDB_TV_STREAMING_SERVICES
+                        ? activeOption.params
+                            ?.replace(
+                              '$regionValue',
+                              encodeURIExtraParams(values?.data.split(',')[0])
+                            )
+                            .replace(
+                              '$providersValue',
+                              encodeURIExtraParams(values?.data.split(',')[1])
+                            )
+                        : activeOption.params?.replace(
+                            '$value',
+                            encodeURIExtraParams(values.data)
                           )
-                          .replace(
-                            '$providersValue',
-                            encodeURIExtraParams(values?.data.split(',')[1])
-                          )
-                      : activeOption.params?.replace(
-                          '$value',
-                          encodeURIExtraParams(values.data)
-                        )
                   }
                   onNewTitles={updateResultCount}
                 />
