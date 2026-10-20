@@ -13,6 +13,7 @@ import type {
   TmdbKeyword,
   TmdbKeywordSearchResponse,
   TmdbLanguage,
+  TmdbListResponse,
   TmdbMovieDetails,
   TmdbNetwork,
   TmdbPersonCombinedCredits,
@@ -918,6 +919,28 @@ class TheMovieDb extends ExternalAPI implements TvShowProvider {
       return data;
     } catch (e) {
       throw new Error(`[TMDB] Failed to fetch upcoming movies: ${e.message}`, {
+        cause: e,
+      });
+    }
+  };
+
+  public getList = async ({
+    listId,
+    page = 1,
+    language = this.locale,
+  }: {
+    listId: number;
+    page?: number;
+    language?: string;
+  }): Promise<TmdbListResponse> => {
+    try {
+      const data = await this.get<TmdbListResponse>(`/list/${listId}`, {
+        params: { page, language },
+      });
+
+      return data;
+    } catch (e) {
+      throw new Error(`[TMDB] Failed to fetch list: ${e.message}`, {
         cause: e,
       });
     }

@@ -736,6 +736,70 @@ discoverRoutes.get('/tv/upcoming', async (req, res, next) => {
   }
 });
 
+discoverRoutes.get<{ listId: string }>(
+  '/list/:listId',
+  async (req, res, next) => {
+    const listId = Number(req.params.listId);
+
+    if (!Number.isInteger(listId) || listId <= 0) {
+      return next({ status: 400, message: 'Invalid TMDB list ID.' });
+    }
+
+    const tmdb = createTmdbWithRegionLanguage(req.user);
+
+    try {
+      const data = await tmdb.getList({
+        listId,
+        page: Number(req.query.page) || 1,
+        language: (req.query.language as string) ?? req.locale,
+      });
+
+      // Lists can only hold movies and series
+      const items = data.items.filter(
+        (item) => item.media_type === 'movie' || item.media_type === 'tv'
+      );
+
+      const media = await Media.getRelatedMedia(
+        req.user,
+        items.map((item) => ({
+          tmdbId: item.id,
+          mediaType: isMovie(item) ? MediaType.MOVIE : MediaType.TV,
+        })),
+        { includeActiveRequest: true }
+      );
+
+      return res.status(200).json({
+        page: data.page,
+        totalPages: data.total_pages,
+        totalResults: data.total_results,
+        list: { id: data.id, name: data.name },
+        results: items.map((item) => {
+          const mediaType = isMovie(item) ? MediaType.MOVIE : MediaType.TV;
+          const selectedMedia = media.find(
+            (med) => med.tmdbId === item.id && med.mediaType === mediaType
+          );
+
+          return isMovie(item)
+            ? mapMovieResult(item, selectedMedia)
+            : mapTvResult(item, selectedMedia);
+        }),
+      });
+    } catch (e) {
+      logger.debug('Something went wrong retrieving a TMDB list', {
+        label: 'API',
+        errorMessage: e.message,
+        listId,
+      });
+      // TMDB answers 404 for missing lists and 401 for private ones
+      const status = e.cause?.response?.status;
+      return next({
+        status: status === 404 || status === 401 ? 404 : 500,
+        message: 'Unable to retrieve TMDB list.',
+      });
+    }
+  }
+);
+
 discoverRoutes.get('/trending', async (req, res, next) => {
   const tmdb = createTmdbWithRegionLanguage(req.user);
 

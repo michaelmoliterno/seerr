@@ -6,6 +6,7 @@ import { WatchProviderSelector } from '@app/components/Selector';
 import { encodeURIExtraParams } from '@app/hooks/useDiscover';
 import useToasts from '@app/hooks/useToasts';
 import defineMessages from '@app/utils/defineMessages';
+import { parseTmdbListId } from '@app/utils/parseTmdbListId';
 import type {
   TmdbCompanySearchResponse,
   TmdbGenre,
@@ -31,6 +32,7 @@ const messages = defineMessages('components.Discover.CreateSlider', {
   providetmdbsearch: 'Provide a search query',
   providetmdbstudio: 'Provide TMDB Studio ID',
   providetmdbnetwork: 'Provide TMDB Network ID',
+  providetmdblist: 'Paste a TMDB list URL or ID',
   addsuccess: 'Created new slider and saved discover customization settings.',
   addfail: 'Failed to create new slider.',
   editsuccess: 'Edited slider and saved discover customization settings.',
@@ -295,6 +297,13 @@ const CreateSlider = ({ onCreate, slider }: CreateSliderProps) => {
       params: 'watchRegion=$regionValue&watchProviders=$providersValue',
       titlePlaceholderText: intl.formatMessage(messages.slidernameplaceholder),
     },
+    {
+      type: DiscoverSliderType.TMDB_LIST,
+      title: intl.formatMessage(sliderTitles.tmdblist),
+      dataUrl: '/api/v1/discover/list/$value',
+      titlePlaceholderText: intl.formatMessage(messages.slidernameplaceholder),
+      dataPlaceholderText: intl.formatMessage(messages.providetmdblist),
+    },
   ];
 
   return (
@@ -467,6 +476,19 @@ const CreateSlider = ({ onCreate, slider }: CreateSliderProps) => {
                 onChange={(region, providers) => {
                   setFieldValue('data', `${region},${providers.join('|')}`);
                 }}
+              />
+            );
+            break;
+          case DiscoverSliderType.TMDB_LIST:
+            dataInput = (
+              <input
+                type="text"
+                id="data"
+                defaultValue={slider?.data}
+                placeholder={activeOption?.dataPlaceholderText}
+                onChange={(e) =>
+                  setFieldValue('data', parseTmdbListId(e.target.value))
+                }
               />
             );
             break;
