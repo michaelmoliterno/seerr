@@ -58,7 +58,8 @@ const messages = defineMessages(
     streamingRegion: 'Streaming Region',
     streamingRegionTip: 'Show streaming sites by regional availability',
     streamingServices: 'My Streaming Services',
-    streamingServicesTip: 'The services you subscribe to',
+    streamingServicesTip:
+      'The services you subscribe to. Pick subscription services, not stores: titles you can rent or buy from a picked service are hidden too.',
     hideStreamingServices: 'Hide Titles on My Services',
     hideStreamingServicesTip:
       'Hide titles available on my services in Discover. Applies to Discover rows; Trending and search are not filtered.',
